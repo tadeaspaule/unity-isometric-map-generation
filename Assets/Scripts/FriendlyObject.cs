@@ -6,11 +6,6 @@ public class FriendlyObject : MonoBehaviour
 {
     GameManager gameManager;
     Friendly friendly;
-
-    public string charName;
-    public string charClass;
-    public int health;
-    public int maxHealth;
     
     // Start is called before the first frame update
     void Start()
@@ -20,6 +15,6 @@ public class FriendlyObject : MonoBehaviour
 
     public void FriendlyClicked()
     {
-        gameManager.PartyCharacterClicked(int.Parse(this.name));
+        gameManager.PartyCharacterClicked(this.gameObject);
     }
 }
