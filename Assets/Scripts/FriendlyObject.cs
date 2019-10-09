@@ -2,19 +2,23 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class FriendlyObject : MonoBehaviour
+public class FriendlyObject : CharacterObject
 {
-    GameManager gameManager;
-    Friendly friendly;
+    public Friendly friendly;
     
     // Start is called before the first frame update
     void Start()
     {
-        gameManager = FindObjectOfType<GameManager>();
+        BaseStart();
     }
 
     public void FriendlyClicked()
     {
         gameManager.PartyCharacterClicked(this.gameObject);
+    }
+
+    protected override void UpdateHealth()
+    {
+        healthbar.fillAmount = ((float)friendly.health) / friendly.maxHealth;
     }
 }

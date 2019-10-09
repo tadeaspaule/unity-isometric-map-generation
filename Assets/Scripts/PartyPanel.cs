@@ -6,9 +6,10 @@ using TMPro;
 
 public class PartyPanel : MonoBehaviour
 {
+    GameManager gameManager;
     public GameObject prefab;
-    public List<Friendly> party;
-    List<MemberPanel> panels;
+    public List<FriendlyObject> party;
+    List<MemberPanel> panels = new List<MemberPanel>();
     
     private class MemberPanel
     {
@@ -16,11 +17,12 @@ public class PartyPanel : MonoBehaviour
         public Transform cooldownHolder;
         public static GameObject cooldownPrefab;
 
-        public static MemberPanel Make(GameObject prefab, Transform parent, Friendly friendly, int index)
+        public static MemberPanel Make(GameObject prefab, Transform parent, Friendly friendly, int index, GameManager gameManager)
         {
             MemberPanel mp = new MemberPanel();
             GameObject go = Instantiate(prefab, Vector2.zero,Quaternion.identity,parent);
             go.name = index.ToString();
+            go.GetComponent<Button>().onClick.AddListener(delegate { gameManager.PartyPanelClicked(index); });
             // this code has to change if you modify the prefab structure / order
             mp.healthbarFill = go.transform.GetChild(0).GetComponent<Image>();
             mp.healthbarFill.fillAmount = friendly.health / friendly.maxHealth;
@@ -34,7 +36,7 @@ public class PartyPanel : MonoBehaviour
         public void UpdateView(Friendly friendly)
         {
             // here update health and cooldowns
-            healthbarFill.fillAmount = friendly.health / friendly.maxHealth;
+            healthbarFill.fillAmount = ((float)friendly.health) / friendly.maxHealth;
             // TODO update cooldowns
         }
     }
@@ -42,10 +44,10 @@ public class PartyPanel : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+        gameManager = FindObjectOfType<GameManager>();
     }
 
-    public void Setup(List<Friendly> party)
+    public void Setup(List<FriendlyObject> party)
     {
         this.party = party;
         foreach (Transform child in transform)
@@ -54,14 +56,14 @@ public class PartyPanel : MonoBehaviour
         }
         panels.Clear();
         for (int i = 0; i < party.Count; i++) {
-            panels.Add(MemberPanel.Make(prefab,transform,party[i],i));
+            panels.Add(MemberPanel.Make(prefab,transform,party[i].friendly,i,gameManager));
         }
     }
 
-    public void UpdateView()
+    void Update()
     {
         for (int i = 0; i < party.Count; i++) {
-            panels[i].UpdateView(party[i]);
+            panels[i].UpdateView(party[i].friendly);
         }
     }
 }

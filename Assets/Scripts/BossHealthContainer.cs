@@ -8,8 +8,8 @@ public class BossHealthContainer : MonoBehaviour
 {
     public GameObject prefab;
 
-    List<Enemy> bosses;
-    List<Transform> bossObjects;
+    List<Enemy> bosses = new List<Enemy>();
+    List<Transform> bossObjects = new List<Transform>();
     
     // Start is called before the first frame update
     void Start()

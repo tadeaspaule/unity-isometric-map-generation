@@ -4,8 +4,10 @@ using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
-    public List<Friendly> party;
+    public List<FriendlyObject> party;
     public List<EnemyObject> enemies;
+
+    public PartyPanel partyPanel;
 
     #region Symbols
     
@@ -38,6 +40,22 @@ public class GameManager : MonoBehaviour
         foreach (string s in symbols) {
             assignedSymbols.Add(s,-1);
         }
+        // Set up dummy Friendly and Enemy objects for now
+        foreach (FriendlyObject fo in party) {
+            Friendly f = new Friendly();
+            f.health = 30;
+            f.maxHealth = 40;
+            f.charName = fo.name;
+            fo.friendly = f;
+        }
+        foreach (EnemyObject eo in enemies) {
+            Enemy e = new Enemy();
+            e.health = 30;
+            e.maxHealth = 40;
+            e.charName = eo.name;
+            eo.enemy = e;
+        }
+        partyPanel.Setup(party);   
     }
 
     // Update is called once per frame
@@ -50,12 +68,14 @@ public class GameManager : MonoBehaviour
 
     public void PartyPanelClicked(int index)
     {
-
+        Debug.Log($"Party panel clicked {index}");
+        party[index].friendly.health -= 5;
     }
 
     public void PartyCharacterClicked(GameObject partyCharacter)
     {
-        int index = int.Parse(partyCharacter.name);
+        Debug.Log($"Clicking on party character with name {partyCharacter.name}");
+        int index = int.Parse(partyCharacter.name.Substring(6));
 
     }
 

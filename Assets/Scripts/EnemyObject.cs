@@ -3,17 +3,14 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class EnemyObject : MonoBehaviour
+public class EnemyObject : CharacterObject
 {
-    GameManager gameManager;
-    Enemy enemy;
-    
-    public SpriteRenderer symbolHolder;
+    public Enemy enemy;
     
     // Start is called before the first frame update
     void Start()
     {
-        gameManager = FindObjectOfType<GameManager>();
+        BaseStart();
     }
 
     public void EnemyClicked()
@@ -21,14 +18,8 @@ public class EnemyObject : MonoBehaviour
         gameManager.EnemyCharacterClicked(this.gameObject);
     }
 
-    public void SetSymbol(string symbol)
+    protected override void UpdateHealth()
     {
-        symbolHolder.gameObject.SetActive(true);
-        symbolHolder.sprite = Resources.Load<Sprite>($"symbols/{symbol}");
-    }
-
-    public void ClearSymbol()
-    {
-        symbolHolder.gameObject.SetActive(false);
+        healthbar.fillAmount = ((float)enemy.health) / enemy.maxHealth;
     }
 }
