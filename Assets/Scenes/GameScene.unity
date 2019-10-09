@@ -13649,6 +13649,7 @@ MonoBehaviour:
     doorsMap: {fileID: 0}
   groundTile: {fileID: 11400000, guid: 2a43b57231f3ccd49a2fe3789d2d6fa6, type: 2}
   frontwallsTile: {fileID: 11400000, guid: a330cb22fa26e804bbb98218c18f179f, type: 2}
+  pillarTile: {fileID: 11400000, guid: 29089ebd427dd754db877818f3e157b6, type: 2}
 --- !u!4 &1364056230
 Transform:
   m_ObjectHideFlags: 0

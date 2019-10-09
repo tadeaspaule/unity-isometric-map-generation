@@ -28,16 +28,20 @@ public class TilemapManager : MonoBehaviour
 
     public TileBase groundTile;
     public TileBase frontwallsTile;
+    public TileBase pillarTile;
 
-    const int blockSize = 10;
+    const int blockSize = 9;
     const int mapSize = 5; // how many blocks is one side
-    const int blockGap = 2;
+    const int blockGap = 3;
 
     int[,] blocks;
+    List<string> layout;    // format is ROOM-X-Y-OPTIONS
+                            // for example single-0-1, hallup-3-3-2 (2 is height)
 
     public void GenerateMapLayout()
     {
         blocks = new int[mapSize,mapSize];
+        layout = new List<string>();
         int counter = 1;
         int visitIndex = 0;
         while (visitIndex < mapSize*mapSize) {
@@ -51,40 +55,52 @@ public class TilemapManager : MonoBehaviour
             possibleShapes.Add("single");
             bool canGoDown = y+1 < mapSize && blocks[y+1,x] == 0;
             bool canGoRight = x+1 < mapSize && blocks[y,x+1] == 0;
-            if (canGoDown) possibleShapes.Add("corridordown");
-            if (canGoDown) possibleShapes.Add("corridordown");
-            if (canGoRight) possibleShapes.Add("corridorright");
-            if (canGoRight) possibleShapes.Add("corridorright");
+            if (canGoDown) possibleShapes.Add("hallwaydown");
+            if (canGoDown) possibleShapes.Add("hallwaydown");
+            if (canGoRight) possibleShapes.Add("hallwayright");
+            if (canGoRight) possibleShapes.Add("hallwayright");
             if (canGoDown && canGoRight) {
                 possibleShapes.Add("chamber");
                 possibleShapes.Add("chamber");
                 possibleShapes.Add("chamber");
-                // maybe make this more likely than corridors (add multiple times)
+                // maybe make this more likely than hallways (add multiple times)
                 // since this can have more variety?
             }
             string shape = possibleShapes[Random.Range(0,possibleShapes.Count)];
             switch (shape) {
                 case "single":
                     blocks[y,x] = counter;
+                    layout.Add($"single-{x}-{y}");
                     break;
-                case "corridordown":
+                case "hallwaydown":
                     int height = Random.Range(2, (int)(mapSize*0.8));
-                    for (int y2 = y; y2+1 < mapSize && y2 < y + height; y2++) {
-                        if (blocks[y2,x] > 0) break;
-                        blocks[y2,x] = counter;
+                    while (y+height >= mapSize) height--;
+                    for (int h = 0; y+h <= mapSize && h <= height; h++) {
+                        if (blocks[y+h,x] > 0) {
+                            height = h-1;
+                            break;
+                        }
+                        blocks[y+h,x] = counter;
                     }
+                    if (height >= 1) layout.Add($"hallup-{x}-{y}-{height+1}");
+                    else layout.Add($"single-{x}-{y}");
                     break;
-                case "corridorright":
+                case "hallwayright":
                     int width = Random.Range(2, (int)(mapSize*0.8));
-                    for (int x2 = x; x2+1 < mapSize && x2 < x + width; x2++) {
-                        if (blocks[y,x2] > 0) break;
-                        blocks[y,x2] = counter;
+                    while (x+width >= mapSize) width--;
+                    for (int w = 0; x+w <= mapSize && w <= width; w++) {
+                        if (blocks[y,x+w] > 0) {
+                            width = w-1;
+                            break;
+                        }
+                        blocks[y,x+w] = counter;
                     }
+                    if (width >= 1) layout.Add($"hallside-{x}-{y}-{width+1}");
+                    else layout.Add($"single-{x}-{y}");
                     break;
                 case "chamber":
                     int sizex = Random.Range(2, (int)(mapSize*0.8));
                     int sizey = Random.Range(2, (int)(mapSize*0.8));
-                    Debug.Log($"Making chamber, original size {sizex} {sizey}");
                     // cutting down size so it fits within the map constraints
                     while (x + sizex > mapSize) sizex--;
                     while (y + sizey > mapSize) sizey--;
@@ -94,7 +110,7 @@ public class TilemapManager : MonoBehaviour
                             break;
                         }
                     }
-                    Debug.Log($"Making chamber, pruned size {sizex} {sizey}");
+                    layout.Add($"chamber-{x}-{y}-{sizex}-{sizey}");
                     for (int y2 = y; y2 < y+sizey; y2++) {
                         for (int x2 = x; x2 < x+sizex; x2++) {
                             blocks[y2,x2] = counter;
@@ -103,6 +119,13 @@ public class TilemapManager : MonoBehaviour
                     break;
             }
             counter++;
+        }
+        for (int y = 0; y < mapSize; y++) {
+            string row = "";
+            for (int x = 0; x < mapSize; x++) {
+                row += blocks[y,x] + " ";
+            }
+            Debug.Log(row);
         }
         SetupMap();
     }
@@ -182,6 +205,77 @@ public class TilemapManager : MonoBehaviour
                     }
                 }
             }
+        }
+        SetupRooms();
+    }
+
+    void SetupRooms()
+    {
+        foreach (string roomShape in layout) {
+            Debug.Log(roomShape);
+            string[] parts = roomShape.Split('-');
+            int x = int.Parse(parts[1]);
+            int y = int.Parse(parts[2]);
+            switch (parts[0]) {
+                case "single":
+                    PopulateSingleRoom(x,y);
+                    break;
+                case "hallup":
+                    PopulateHallwayUp(x,y,int.Parse(parts[3]));
+                    break;
+                case "hallside":
+                    PopulateHallwaySide(x,y,int.Parse(parts[3]));
+                    break;
+                case "chamber":
+                    PopulateChamber(x,y,int.Parse(parts[3]),int.Parse(parts[4]));
+                    break;
+            }
+        }
+    }
+
+    void PopulateSingleRoom(int x, int y)
+    {
+
+    }
+
+    void PopulateChamber(int x, int y, int xSide, int ySide)
+    {
+
+    }
+
+    void PopulateHallwayUp(int x, int y, int length)
+    {
+        // populates a hallway going "up" (north west)
+        int startX = (blockSize+blockGap)*x;
+        int startY = (blockSize+blockGap)*y;
+
+        for (int y2 = startY; y2 < startY+blockSize*length+blockGap*(length-1); y2+=3) {
+            // bottom left edge
+            Vector3Int pos = new Vector3Int(startX+1,y2+1,0);
+            levels[0].baseMap.SetTile(pos,pillarTile);
+            colliderMap.SetTile(pos,groundTile);
+            // top right edge
+            pos = new Vector3Int(startX+blockSize-2,y2+1,0);
+            levels[0].baseMap.SetTile(pos,pillarTile);
+            colliderMap.SetTile(pos,groundTile);
+        }
+    }
+
+    void PopulateHallwaySide(int x, int y, int length)
+    {
+        // populates a hallway going "right" (north east)
+        int startX = (blockSize+blockGap)*x;
+        int startY = (blockSize+blockGap)*y;
+
+        for (int x2 = startX; x2 < startX+blockSize*length+blockGap*(length-1); x2+=3) {
+            // bottom right edge
+            Vector3Int pos = new Vector3Int(x2+1,startY+1,0);
+            levels[0].baseMap.SetTile(pos,pillarTile);
+            colliderMap.SetTile(pos,groundTile);
+            // top left edge
+            pos = new Vector3Int(x2+1,startY+blockSize-2,0);
+            levels[0].baseMap.SetTile(pos,pillarTile);
+            colliderMap.SetTile(pos,groundTile);
         }
     }
 
