@@ -30,6 +30,16 @@ public class TilemapManager : MonoBehaviour
     public TileBase frontwallsTile;
     public TileBase pillarTile;
 
+    public TileBase stairsUpLeftTile;
+    public TileBase topRightCollider;
+    public TileBase stairsUpRightTile;
+    public TileBase topLeftCollider;
+    public TileBase rightHalfCollider;
+    public TileBase leftHalfCollider;
+    public TileBase topHalfCollider;
+    public TileBase stairsTopRightCollider;
+    public TileBase stairsTopLeftCollider;
+
     const int blockSize = 9;
     const int mapSize = 5; // how many blocks is one side
     const int blockGap = 3;
@@ -143,6 +153,7 @@ public class TilemapManager : MonoBehaviour
         for (int y = -1; y < (blockSize+blockGap)*mapSize+1; y++) {
             for (int x = -1; x < (blockSize+blockGap)*mapSize+1; x++) {
                 colliderMap.SetTile(new Vector3Int(x,y,0),groundTile);
+                frontwallsMap.SetTile(new Vector3Int(x,y,0),null);
             }
         }
         for (int y = 0; y < mapSize; y++) {
@@ -166,9 +177,9 @@ public class TilemapManager : MonoBehaviour
                     }
                     else {
                         // different room -> draw bridge
-                        int bridgeX = startX + Random.Range(0,blockSize-2);
+                        int bridgeX = startX + 3;
                         for (int cellY = startY+blockSize; cellY < startY+blockSize+blockGap; cellY++) {
-                            for (int cellX = bridgeX; cellX < bridgeX + 2; cellX++) {
+                            for (int cellX = bridgeX; cellX < bridgeX + 3; cellX++) {
                                 FillGroundTile(new Vector3Int(cellX,cellY,0),cellY==startY+blockSize||cellX==bridgeX);
                             }
                         }
@@ -186,8 +197,8 @@ public class TilemapManager : MonoBehaviour
                     }
                     else {
                         // different room -> draw bridge
-                        int bridgeY = startY + Random.Range(0,blockSize-2);
-                        for (int cellY = bridgeY; cellY < bridgeY+2; cellY++) {
+                        int bridgeY = startY + 3;
+                        for (int cellY = bridgeY; cellY < bridgeY+3; cellY++) {
                             for (int cellX = startX+blockSize; cellX < startX+blockSize+blockGap; cellX++) {
                                 FillGroundTile(new Vector3Int(cellX,cellY,0),cellY==bridgeY||cellX==startX+blockSize);
                             }
@@ -240,7 +251,51 @@ public class TilemapManager : MonoBehaviour
 
     void PopulateChamber(int x, int y, int xSide, int ySide)
     {
+        int startX = (blockSize+blockGap)*x+3;
+        int startY = (blockSize+blockGap)*y+3;
+        MakeElevatedGround(startX+2,startY+4,startX+3,startY+7);
+        MakeRightUpStairs(startX+1,startY+4,2);
+    }
 
+    void MakeRightUpStairs(int x, int y, int length)
+    {
+        for (int i = 0; i < length; i++) {
+            levels[0].baseMap.SetTile(new Vector3Int(x,y+i,0),stairsUpRightTile); // stair sprite
+        }
+        colliderMap.SetTile(new Vector3Int(x-1,y-2,0),topLeftCollider); // right bottom edge
+        for (int i = 0; i < length; i++) {
+            colliderMap.SetTile(new Vector3Int(x-1,y-1+i,0),null); // removing el. plat. bottom edge
+            colliderMap.SetTile(new Vector3Int(x,y+i,0),null); // removing el.plat top edge
+        }        
+        colliderMap.SetTile(new Vector3Int(x,y+length-1,0),stairsTopLeftCollider); // left stair edge
+        colliderMap.SetTile(new Vector3Int(x,y-1,0),stairsTopLeftCollider); // right stair edge
+    }
+
+    void MakeElevatedGround(int x1, int y1, int x2, int y2)
+    {
+        for (int x = x1; x <= x2; x++) {
+            // bottom right collider
+            colliderMap.SetTile(new Vector3Int(x-1,y1-2,0),topLeftCollider);
+            colliderMap.SetTile(new Vector3Int(x,y1-1,0),topLeftCollider);
+            colliderMap.SetTile(new Vector3Int(x,y2,0),topLeftCollider);
+            if (x == x2) colliderMap.SetTile(new Vector3Int(x,y1-1,0),leftHalfCollider);
+            for (int y = y1; y <= y2; y++) {
+                levels[0].baseMap.SetTile(new Vector3Int(x,y,0),pillarTile);
+                if (x == x1) {
+                    // bottom left
+                    colliderMap.SetTile(new Vector3Int(x-2,y-1,0),topRightCollider);
+                    colliderMap.SetTile(new Vector3Int(x-1,y,0),topRightCollider);
+                    if (y == y2) {
+                        colliderMap.SetTile(new Vector3Int(x-1,y,0),rightHalfCollider);
+                    }
+                }
+                else if (x == x2) {
+                    // top right collider
+                    colliderMap.SetTile(new Vector3Int(x,y,0),topRightCollider);
+                }
+            }
+        }
+        colliderMap.SetTile(new Vector3Int(x2,y2,0),topHalfCollider);
     }
 
     void PopulateHallwayUp(int x, int y, int length)
