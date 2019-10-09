@@ -29,7 +29,84 @@ public class TilemapManager : MonoBehaviour
     public TileBase groundTile;
     public TileBase frontwallsTile;
 
-    
+    const int blockSize = 10;
+    const int mapSize = 5; // how many blocks is one side
+    const int blockGap = 2;
+
+    int[,] blocks;
+
+    public void GenerateMapLayout()
+    {
+        blocks = new int[mapSize,mapSize];
+        int counter = 1;
+        int visitIndex = 0;
+        while (visitIndex < mapSize*mapSize) {
+            int block = visitIndex;
+            visitIndex++;
+            int x = block % mapSize;
+            int y = block / mapSize;
+            if (blocks[y,x] > 0) continue;
+            List<string> possibleShapes = new List<string>();
+            possibleShapes.Add("single");
+            possibleShapes.Add("single");
+            bool canGoDown = y+1 < mapSize && blocks[y+1,x] == 0;
+            bool canGoRight = x+1 < mapSize && blocks[y,x+1] == 0;
+            if (canGoDown) possibleShapes.Add("corridordown");
+            if (canGoDown) possibleShapes.Add("corridordown");
+            if (canGoRight) possibleShapes.Add("corridorright");
+            if (canGoRight) possibleShapes.Add("corridorright");
+            if (canGoDown && canGoRight) {
+                possibleShapes.Add("chamber");
+                possibleShapes.Add("chamber");
+                possibleShapes.Add("chamber");
+                // maybe make this more likely than corridors (add multiple times)
+                // since this can have more variety?
+            }
+            string shape = possibleShapes[Random.Range(0,possibleShapes.Count)];
+            switch (shape) {
+                case "single":
+                    blocks[y,x] = counter;
+                    break;
+                case "corridordown":
+                    int height = Random.Range(2, (int)(mapSize*0.8));
+                    for (int y2 = y; y2+1 < mapSize && y2 < y + height; y2++) {
+                        if (blocks[y2,x] > 0) break;
+                        blocks[y2,x] = counter;
+                    }
+                    break;
+                case "corridorright":
+                    int width = Random.Range(2, (int)(mapSize*0.8));
+                    for (int x2 = x; x2+1 < mapSize && x2 < x + width; x2++) {
+                        if (blocks[y,x2] > 0) break;
+                        blocks[y,x2] = counter;
+                    }
+                    break;
+                case "chamber":
+                    int sizex = Random.Range(2, (int)(mapSize*0.8));
+                    int sizey = Random.Range(2, (int)(mapSize*0.8));
+                    Debug.Log($"Making chamber, original size {sizex} {sizey}");
+                    // cutting down size so it fits within the map constraints
+                    while (x + sizex > mapSize) sizex--;
+                    while (y + sizey > mapSize) sizey--;
+                    for (int s = 1; s < sizex; s++) {
+                        if (blocks[y,x+s] > 0) {
+                            sizex = s - 1;
+                            break;
+                        }
+                    }
+                    Debug.Log($"Making chamber, pruned size {sizex} {sizey}");
+                    for (int y2 = y; y2 < y+sizey; y2++) {
+                        for (int x2 = x; x2 < x+sizex; x2++) {
+                            blocks[y2,x2] = counter;
+                        }
+                    }
+                    break;
+            }
+            counter++;
+        }
+        SetupMap();
+    }
+
     // Start is called before the first frame update
     void Start()
     {
@@ -37,7 +114,7 @@ public class TilemapManager : MonoBehaviour
         // colliderMap.ClearAllTiles(); DONT DO THIS IT somehow turns off the collider component or smth
     }
 
-    public void SetupMap(int[,] blocks, int blockSize, int blockGap, int mapSize)
+    public void SetupMap()
     {
         levels[0].ClearAll();
         for (int y = -1; y < (blockSize+blockGap)*mapSize+1; y++) {
