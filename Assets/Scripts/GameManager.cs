@@ -5,14 +5,31 @@ using UnityEngine;
 public class GameManager : MonoBehaviour
 {
     public List<Friendly> party;
+    public List<EnemyObject> enemies;
 
+    #region Symbols
+    
     public SymbolHolder symbolHolder;
 
     List<string> symbols = new List<string>(new string[]{"donut","square"});
     string selectedSymbol = null;
     Dictionary<string,int> assignedSymbols = new Dictionary<string, int>();
 
-    public List<EnemyObject> enemies;
+    public void SymbolClicked(GameObject symbol)
+    {
+        int index = int.Parse(symbol.name);
+        selectedSymbol = symbols[index];
+        symbolHolder.HighlightSymbol(index);
+    }
+
+    #endregion
+
+    #region Generation
+
+    
+
+    #endregion
+
     
     // Start is called before the first frame update
     void Start()
@@ -34,13 +51,6 @@ public class GameManager : MonoBehaviour
     public void PartyPanelClicked(int index)
     {
 
-    }
-
-    public void SymbolClicked(GameObject symbol)
-    {
-        int index = int.Parse(symbol.name);
-        selectedSymbol = symbols[index];
-        symbolHolder.HighlightSymbol(index);
     }
 
     public void PartyCharacterClicked(GameObject partyCharacter)

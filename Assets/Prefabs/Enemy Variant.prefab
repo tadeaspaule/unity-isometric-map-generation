@@ -103,7 +103,7 @@ PrefabInstance:
     - target: {fileID: 3339481645408498929, guid: 5e2a82902b6ea4c0b9b652322ffadcff,
         type: 3}
       propertyPath: m_Name
-      value: Enemy
+      value: Enemy Variant
       objectReference: {fileID: 0}
     - target: {fileID: 3339481645408498929, guid: 5e2a82902b6ea4c0b9b652322ffadcff,
         type: 3}
@@ -169,6 +169,10 @@ PrefabInstance:
       propertyPath: m_SortingLayerID
       value: -1487120583
       objectReference: {fileID: 0}
+    - target: {fileID: 2079923368, guid: 5e2a82902b6ea4c0b9b652322ffadcff, type: 3}
+      propertyPath: m_SortingLayer
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7738998658837499899, guid: 5e2a82902b6ea4c0b9b652322ffadcff,
         type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.size
@@ -198,6 +202,18 @@ PrefabInstance:
         type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 1093422812, guid: 5e2a82902b6ea4c0b9b652322ffadcff, type: 3}
+      propertyPath: m_Color.r
+      value: 0.990566
+      objectReference: {fileID: 0}
+    - target: {fileID: 1093422812, guid: 5e2a82902b6ea4c0b9b652322ffadcff, type: 3}
+      propertyPath: m_Color.g
+      value: 0.35017332
+      objectReference: {fileID: 0}
+    - target: {fileID: 1093422812, guid: 5e2a82902b6ea4c0b9b652322ffadcff, type: 3}
+      propertyPath: m_Color.b
+      value: 0.2663314
       objectReference: {fileID: 0}
     - target: {fileID: 3339481644051735614, guid: 5e2a82902b6ea4c0b9b652322ffadcff,
         type: 3}
