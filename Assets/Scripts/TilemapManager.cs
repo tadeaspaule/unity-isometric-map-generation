@@ -15,7 +15,7 @@ public class TilemapManager : MonoBehaviour
         public Tilemap detailMap;   // holds details tiles that sit directly on top of base tiles - decoration
         public Tilemap wallsMap;    // holds the top edge walls of that level
         public Tilemap doorsMap;    // if applicable, holds the doors to the next level. Otherwise null
-    
+
         public void ClearAll()
         {
             baseMap.ClearAllTiles();
@@ -252,11 +252,11 @@ public class TilemapManager : MonoBehaviour
         for (int y2 = startY; y2 < startY+blockSize*length+blockGap*(length-1); y2+=3) {
             // bottom left edge
             Vector3Int pos = new Vector3Int(startX+1,y2+1,0);
-            levels[0].baseMap.SetTile(pos,pillarTile);
+            levels[0].wallsMap.SetTile(pos,pillarTile);
             colliderMap.SetTile(pos,groundTile);
             // top right edge
             pos = new Vector3Int(startX+blockSize-2,y2+1,0);
-            levels[0].baseMap.SetTile(pos,pillarTile);
+            levels[0].wallsMap.SetTile(pos,pillarTile);
             colliderMap.SetTile(pos,groundTile);
         }
     }
@@ -270,11 +270,11 @@ public class TilemapManager : MonoBehaviour
         for (int x2 = startX; x2 < startX+blockSize*length+blockGap*(length-1); x2+=3) {
             // bottom right edge
             Vector3Int pos = new Vector3Int(x2+1,startY+1,0);
-            levels[0].baseMap.SetTile(pos,pillarTile);
+            levels[0].wallsMap.SetTile(pos,pillarTile);
             colliderMap.SetTile(pos,groundTile);
             // top left edge
             pos = new Vector3Int(x2+1,startY+blockSize-2,0);
-            levels[0].baseMap.SetTile(pos,pillarTile);
+            levels[0].wallsMap.SetTile(pos,pillarTile);
             colliderMap.SetTile(pos,groundTile);
         }
     }
