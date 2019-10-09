@@ -253,8 +253,8 @@ public class TilemapManager : MonoBehaviour
     {
         int startX = (blockSize+blockGap)*x+3;
         int startY = (blockSize+blockGap)*y+3;
-        MakeElevatedGround(startX+2,startY+4,startX+3,startY+7);
-        MakeRightUpStairs(startX+1,startY+4,2);
+        MakeElevatedGround(startX,startY,startX+3,startY+7);
+        MakeLeftUpStairs(startX,startY-1,4);
     }
 
     void MakeRightUpStairs(int x, int y, int length)
@@ -269,6 +269,20 @@ public class TilemapManager : MonoBehaviour
         }        
         colliderMap.SetTile(new Vector3Int(x,y+length-1,0),stairsTopLeftCollider); // left stair edge
         colliderMap.SetTile(new Vector3Int(x,y-1,0),stairsTopLeftCollider); // right stair edge
+    }
+
+    void MakeLeftUpStairs(int x, int y, int length)
+    {
+        for (int i = 0; i < length; i++) {
+            levels[0].baseMap.SetTile(new Vector3Int(x+i,y,0),stairsUpLeftTile); // stair sprite
+        }
+        colliderMap.SetTile(new Vector3Int(x-2,y-1,0),topRightCollider); // right bottom edge
+        for (int i = 0; i < length; i++) {
+            colliderMap.SetTile(new Vector3Int(x-1+i,y-1,0),null); // removing el. plat. bottom edge
+            colliderMap.SetTile(new Vector3Int(x+i,y,0),null); // removing el.plat top edge
+        }        
+        colliderMap.SetTile(new Vector3Int(x+length-1,y,0),stairsTopRightCollider); // left stair edge
+        colliderMap.SetTile(new Vector3Int(x-1,y,0),stairsTopRightCollider); // right stair edge
     }
 
     void MakeElevatedGround(int x1, int y1, int x2, int y2)
