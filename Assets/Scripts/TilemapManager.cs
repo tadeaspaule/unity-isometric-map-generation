@@ -27,12 +27,13 @@ public class TilemapManager : MonoBehaviour
     public List<TilemapLevel> levels;
 
     public TileBase groundTile;
+    public TileBase frontwallsTile;
 
     
     // Start is called before the first frame update
     void Start()
     {
-        frontwallsMap.ClearAllTiles();
+        // frontwallsMap.ClearAllTiles();
         // colliderMap.ClearAllTiles(); DONT DO THIS IT somehow turns off the collider component or smth
     }
 
@@ -50,7 +51,7 @@ public class TilemapManager : MonoBehaviour
                 int startY = (blockSize+blockGap)*y;
                 for (int cellY = startY; cellY < startY + blockSize; cellY++) {
                     for (int cellX = startX; cellX < startX + blockSize; cellX++) {
-                        FillGroundTile(new Vector3Int(cellX,cellY,0));
+                        FillGroundTile(new Vector3Int(cellX,cellY,0),cellY==startY||cellX==startX);
                     }
                 }
                 // connect block above
@@ -59,7 +60,7 @@ public class TilemapManager : MonoBehaviour
                         // same room -> fill gap
                         for (int cellY = startY+blockSize; cellY < startY+blockSize+blockGap; cellY++) {
                             for (int cellX = startX; cellX < startX + blockSize; cellX++) {
-                                FillGroundTile(new Vector3Int(cellX,cellY,0));
+                                FillGroundTile(new Vector3Int(cellX,cellY,0),cellY==startY||cellX==startX);
                             }
                         }
                     }
@@ -68,7 +69,7 @@ public class TilemapManager : MonoBehaviour
                         int bridgeX = startX + Random.Range(0,blockSize-2);
                         for (int cellY = startY+blockSize; cellY < startY+blockSize+blockGap; cellY++) {
                             for (int cellX = bridgeX; cellX < bridgeX + 2; cellX++) {
-                                FillGroundTile(new Vector3Int(cellX,cellY,0));
+                                FillGroundTile(new Vector3Int(cellX,cellY,0),cellY==startY+blockSize||cellX==bridgeX);
                             }
                         }
                     }
@@ -79,7 +80,7 @@ public class TilemapManager : MonoBehaviour
                         // same room -> fill gap
                         for (int cellY = startY; cellY < startY+blockSize; cellY++) {
                             for (int cellX = startX+blockSize; cellX < startX + blockSize+blockGap; cellX++) {
-                                FillGroundTile(new Vector3Int(cellX,cellY,0));
+                                FillGroundTile(new Vector3Int(cellX,cellY,0),cellY==startY||cellX==startX);
                             }
                         }
                     }
@@ -88,7 +89,7 @@ public class TilemapManager : MonoBehaviour
                         int bridgeY = startY + Random.Range(0,blockSize-2);
                         for (int cellY = bridgeY; cellY < bridgeY+2; cellY++) {
                             for (int cellX = startX+blockSize; cellX < startX+blockSize+blockGap; cellX++) {
-                                FillGroundTile(new Vector3Int(cellX,cellY,0));
+                                FillGroundTile(new Vector3Int(cellX,cellY,0),cellY==bridgeY||cellX==startX+blockSize);
                             }
                         }
                     }
@@ -98,7 +99,7 @@ public class TilemapManager : MonoBehaviour
                     if (blocks[y,x+1] == blocks[y+1,x] && blocks[y,x+1] == blocks[y,x]) {
                         for (int cellY = startY+blockSize; cellY < startY+blockSize+blockGap; cellY++) {
                             for (int cellX = startX+blockSize; cellX < startX+blockSize+blockGap; cellX++) {
-                                FillGroundTile(new Vector3Int(cellX,cellY,0));
+                                FillGroundTile(new Vector3Int(cellX,cellY,0),false);
                             }
                         }
                     }
@@ -107,9 +108,10 @@ public class TilemapManager : MonoBehaviour
         }
     }
 
-    void FillGroundTile(Vector3Int pos)
+    void FillGroundTile(Vector3Int pos, bool onEdge)
     {
         levels[0].baseMap.SetTile(pos,groundTile);
         colliderMap.SetTile(pos,null);
+        if (onEdge) frontwallsMap.SetTile(new Vector3Int(pos.x-1,pos.y-1,0),frontwallsTile);
     }
 }
