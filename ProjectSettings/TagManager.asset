@@ -3,7 +3,9 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags: []
+  tags:
+  - Party
+  - Enemy
   layers:
   - Default
   - TransparentFX
@@ -38,6 +40,18 @@ TagManager:
   - 
   - 
   m_SortingLayers:
+  - name: Background
+    uniqueID: 2675502015
+    locked: 0
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: Foreground
+    uniqueID: 2807846713
+    locked: 0
+  - name: Collider Debug
+    uniqueID: 1723336335
+    locked: 0
+  - name: UI
+    uniqueID: 417602057
     locked: 0

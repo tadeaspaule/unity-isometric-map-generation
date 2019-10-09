@@ -59,7 +59,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_AdditionalShaderChannelsFlag: 0
-  m_SortingLayerID: -1004816635
+  m_SortingLayerID: 417602057
   m_SortingOrder: 0
   m_TargetDisplay: 0
 --- !u!114 &225279476
@@ -451,7 +451,7 @@ GameObject:
   - component: {fileID: 2079923368}
   - component: {fileID: 766874359}
   m_Layer: 0
-  m_Name: Party
+  m_Name: CharacterBase
   m_TagString: Party
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -504,7 +504,7 @@ SortingGroup:
   m_GameObject: {fileID: 3339481645408498929}
   m_Enabled: 1
   m_SortingLayerID: 2130146985
-  m_SortingLayer: 1
+  m_SortingLayer: 0
   m_SortingOrder: 0
 --- !u!114 &766874359
 MonoBehaviour:
