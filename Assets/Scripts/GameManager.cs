@@ -63,7 +63,11 @@ public class GameManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+        if (Input.GetKeyDown("m")) {
+            Vector3 dest = new Vector3(Random.Range(0f,30f),Random.Range(0f,30f),0);
+            Debug.Log($"Set destination to {dest.x},{dest.y}");
+            enemies[0].GetComponent<IsometricMovementController>().SetRoomDestination(dest);
+        }
     }
 
     #region Click events
