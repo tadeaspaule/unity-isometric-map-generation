@@ -5,6 +5,13 @@ using UnityEngine.Tilemaps;
 
 public class TilemapManager : MonoBehaviour
 {
+    #region Other Managers
+
+    public PathManager pathManager;
+    public GameManager gameManager;
+
+    #endregion
+    
     public Tilemap colliderMap;     // this has collider stuff and it's used everywhere tiles are inaccessible
     public Tilemap frontwallsMap;   // the front bottom edges of all rooms, to give it a quasi 3D look
 
@@ -30,6 +37,7 @@ public class TilemapManager : MonoBehaviour
     public TileBase frontwallsTile;
     public TileBase pillarTile;
     public TileBase highlightTile;
+    public TileBase highlightTile2;
 
     public TileBase stairsUpLeftTile;
     public TileBase topRightCollider;
@@ -47,93 +55,28 @@ public class TilemapManager : MonoBehaviour
     const int bridgeW = 3;
 
     int[,] blocks;
-    
-    public class MapNode
-    {
-        public int startX;
-        public int endX;
-        public int startY;
-        public int endY;
-        public float centerX;
-        public float centerY;
-        public List<Connection> connections;
-        public List<Vector2Int> blockConnections;
-
-        public class Connection
-        {
-            public MapNode origin;
-            public MapNode destination;
-            public Vector2Int bridgeStart;
-            public Vector2Int bridgeEnd;
-
-            public Connection(MapNode origin, int endX, int endY, bool isSideConnection)
-            {
-                // coords to the middle of the block it's connecting to
-                int middleX = endX*(blockSize+blockGap) + blockSize/2 + 1;
-                int middleY = endY*(blockSize+blockGap) + blockSize/2 + 1;
-                int edgeX = origin.endX*(blockSize+blockGap)+blockSize;
-                int edgeY = origin.endY*(blockSize+blockGap)+blockSize;
-                GraphNode node1 = Pathfinder.graph[0];
-                GraphNode node2 = Pathfinder.graph[0];
-                if (isSideConnection) {
-                    bridgeStart = new Vector2Int(edgeX,middleY);
-                    bridgeEnd = new Vector2Int(edgeX + blockGap + 1,middleY);
-                    node1 = Pathfinder.graph[(origin.endX+endY*mapSize)*4+1];
-                    node2 = Pathfinder.graph[(origin.endX+1+endY*mapSize)*4+3];
-                }
-                else {
-                    bridgeStart = new Vector2Int(middleX,edgeY);
-                    bridgeEnd = new Vector2Int(middleX,edgeY + blockGap + 1);
-                    node1 = Pathfinder.graph[(endX+origin.endY*mapSize)*4+2];
-                    node2 = Pathfinder.graph[(endX+(origin.endY+1)*mapSize)*4];
-                }
-                node1.connections.Add(node2);
-                node2.connections.Add(node1);
-            }
-        }
-
-        public MapNode(int x1, int y1, int x2, int y2)
-        {
-            startX = x1;
-            startY = y1;
-            endX = x2;
-            endY = y2;
-            blockConnections = new List<Vector2Int>();
-            connections = new List<Connection>();
-            if (x2 + 1 < mapSize) {
-                for (int y = y1; y <= y2; y++) ConnectToBlock(x2+1,y,true);
-            }
-            if (y2 + 1 < mapSize) {
-                for (int x = x1; x <= x2; x++) ConnectToBlock(x,y2+1,false);
-            }
-            centerX = (startX*(blockSize+blockGap) + endX*(blockSize+blockGap)+blockSize) / 2;
-            centerY = (startY*(blockSize+blockGap) + endY*(blockSize+blockGap)+blockSize) / 2;
-        }
-
-        public void ConnectToBlock(int x, int y, bool isSideConnection)
-        {
-            blockConnections.Add(new Vector2Int(x,y));
-            connections.Add(new Connection(this,x,y,isSideConnection));
-        }
-    }
 
     List<MapNode> layout;    // format is ROOM-X-Y-OPTIONS
                             // for example single-0-1, hallup-3-3-2 (2 is height)
         
     public void GenerateMapLayout()
     {
-        Pathfinder.graph.Clear();
+        pathManager.graph.Clear();
+        pathManager.rooms.Clear();
+        MapNode.blockSize = blockSize;
+        MapNode.blockGap = blockGap;
+        MapNode.mapSize = mapSize;
+        int half = (int)Mathf.Round(blockSize/2+0.3f);
         for (int i = 0; i < mapSize*mapSize; i++) {
             int x = i % mapSize;
             int y = i / mapSize;
-            float cx = x*(blockSize+blockGap) + blockSize/2;
-            float cy = y*(blockSize+blockGap) + blockSize/2;
-            float half = blockSize/2;
+            int cx = x*(blockSize+blockGap) + half;
+            int cy = y*(blockSize+blockGap) + half;
             // clockwise from top
-            Pathfinder.graph.Add(new GraphNode(cx,cy-half));
-            Pathfinder.graph.Add(new GraphNode(cx+half,cy));
-            Pathfinder.graph.Add(new GraphNode(cx,cy+half));
-            Pathfinder.graph.Add(new GraphNode(cx-half,cy));
+            pathManager.graph.Add(new GraphNode(cx,cy-half));
+            pathManager.graph.Add(new GraphNode(cx+half,cy));
+            pathManager.graph.Add(new GraphNode(cx,cy+half));
+            pathManager.graph.Add(new GraphNode(cx-half,cy));
         }
         blocks = new int[mapSize,mapSize];
         layout = new List<MapNode>();
@@ -165,7 +108,7 @@ public class TilemapManager : MonoBehaviour
             switch (shape) {
                 case "single":
                     blocks[y,x] = counter;
-                    layout.Add(new MapNode(x,y,x,y));
+                    AddRoom(x,y,x,y);
                     break;
                 case "hallwaydown":
                     int height = Random.Range(2, (int)(mapSize*0.8));
@@ -177,8 +120,8 @@ public class TilemapManager : MonoBehaviour
                         }
                         blocks[y+h,x] = counter;
                     }
-                    if (height >= 1) layout.Add(new MapNode(x,y,x,y+height));
-                    else layout.Add(new MapNode(x,y,x,y));
+                    if (height >= 1) AddRoom(x,y,x,y+height);
+                    else AddRoom(x,y,x,y);
                     break;
                 case "hallwayright":
                     int width = Random.Range(2, (int)(mapSize*0.8));
@@ -190,8 +133,8 @@ public class TilemapManager : MonoBehaviour
                         }
                         blocks[y,x+w] = counter;
                     }
-                    if (width >= 1) layout.Add(new MapNode(x,y,x+width,y));
-                    else layout.Add(new MapNode(x,y,x,y));
+                    if (width >= 1) AddRoom(x,y,x+width,y);
+                    else AddRoom(x,y,x,y);
                     break;
                 case "chamber":
                     int sizex = Random.Range(2, (int)(mapSize*0.8));
@@ -205,7 +148,7 @@ public class TilemapManager : MonoBehaviour
                             break;
                         }
                     }
-                    layout.Add(new MapNode(x,y,x+sizex-1,y+sizey-1));
+                    AddRoom(x,y,x+sizex-1,y+sizey-1);
                     for (int y2 = y; y2 < y+sizey; y2++) {
                         for (int x2 = x; x2 < x+sizex; x2++) {
                             blocks[y2,x2] = counter;
@@ -220,15 +163,15 @@ public class TilemapManager : MonoBehaviour
             List<GraphNode> nodesInRoom = new List<GraphNode>();
             for (int y = mn.startY; y <= mn.endY; y++) {
                 // add left edge ones
-                if (mn.startX > 0) nodesInRoom.Add(Pathfinder.graph[(mn.startX+y*mapSize)*4+3]);
+                if (mn.startX > 0) nodesInRoom.Add(pathManager.graph[(mn.startX+y*mapSize)*4+3]);
                 // add right edge ones
-                if (mn.endX+1 < mapSize) nodesInRoom.Add(Pathfinder.graph[(mn.endX+y*mapSize)*4+1]);
+                if (mn.endX+1 < mapSize) nodesInRoom.Add(pathManager.graph[(mn.endX+y*mapSize)*4+1]);
             }
             for (int x = mn.startX; x <= mn.endX; x++) {
                 // add top edge ones
-                if (mn.startY > 0) nodesInRoom.Add(Pathfinder.graph[(x+mn.startY*mapSize)*4]);
+                if (mn.startY > 0) nodesInRoom.Add(pathManager.graph[(x+mn.startY*mapSize)*4]);
                 // add bottom edge ones
-                if (mn.endY+1 < mapSize) nodesInRoom.Add(Pathfinder.graph[(x+mn.endY*mapSize)*4+2]);                
+                if (mn.endY+1 < mapSize) nodesInRoom.Add(pathManager.graph[(x+mn.endY*mapSize)*4+2]);                
             }
             for (int i = 0; i < nodesInRoom.Count; i++) {
                 for (int i2 = i+1; i2 < nodesInRoom.Count; i2++) {
@@ -236,8 +179,9 @@ public class TilemapManager : MonoBehaviour
                     nodesInRoom[i2].connections.Add(nodesInRoom[i]);
                 }
             }
+            mn.nodes = nodesInRoom;
         }
-        Pathfinder.graph.RemoveAll(gn => gn.connections.Count == 0);
+        pathManager.graph.RemoveAll(gn => gn.connections.Count == 0);
         for (int y = 0; y < mapSize; y++) {
             string row = "";
             for (int x = 0; x < mapSize; x++) {
@@ -249,9 +193,16 @@ public class TilemapManager : MonoBehaviour
         PruneConnections();
 
         SetupMap();
-        foreach (GraphNode g in Pathfinder.graph) {
+        foreach (GraphNode g in pathManager.graph) {
             levels[0].wallsMap.SetTile(new Vector3Int((int)g.pos.x,(int)g.pos.y,0),highlightTile);
         }
+    }
+
+    void AddRoom(int x1, int y1, int x2, int y2)
+    {
+        MapNode mn = new MapNode(x1,y1,x2,y2,pathManager);
+        layout.Add(mn);
+        pathManager.rooms.Add(mn);
     }
 
     void PruneConnections()
@@ -263,6 +214,23 @@ public class TilemapManager : MonoBehaviour
     {
         // frontwallsMap.ClearAllTiles();
         // colliderMap.ClearAllTiles(); DONT DO THIS IT somehow turns off the collider component or smth
+    }
+
+    void Update()
+    {
+        if (Input.GetKeyDown("m")) {
+            Vector3Int dest = new Vector3Int(Random.Range(20,30),Random.Range(20,30),0);
+            Debug.Log($"Set destination to {dest.x},{dest.y}");
+            gameManager.enemies[0].GetComponent<IsometricMovementController>().SetRoomDestination(levels[0].baseMap.CellToWorld(dest));
+            foreach (GraphNode g in pathManager.graph) {
+                levels[0].wallsMap.SetTile(new Vector3Int((int)g.pos.x,(int)g.pos.y,0),highlightTile);
+            }
+            List<Vector3Int> path = pathManager.GetPath(Vector3Int.zero,dest);
+            for (int i = 0; i < path.Count; i++) {
+                Debug.Log($"{i}: ({path[i].x},{path[i].y})");
+                levels[0].wallsMap.SetTile(new Vector3Int(path[i].x,path[i].y,0),highlightTile2);
+            }
+        }
     }
 
     void SetupMap()

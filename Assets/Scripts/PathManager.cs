@@ -1,45 +1,46 @@
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
-public static class Pathfinder
+public class PathManager : MonoBehaviour
 {
-    public static List<GraphNode> graph = new List<GraphNode>();
+    public List<GraphNode> graph = new List<GraphNode>();
+    public List<MapNode> rooms = new List<MapNode>();
+    public Tilemap tilemap;
     
     private class PQitem
     {
         public float totalDist;
         public GraphNode goThrough;
-        public GraphNode pos;
+        public GraphNode node;
 
-        public PQitem(GraphNode origin, GraphNode pos)
+        public PQitem(GraphNode origin, GraphNode node)
         {
             goThrough = origin;
-            this.pos = pos;
+            this.node = node;
         }
     }
     
     private class PQ
     {
-        Vector3 start;
-        Vector3 end;
+        Vector3Int start;
+        Vector3Int end;
         public List<PQitem> queue;
-        Tilemap tilemap;
         HashSet<GraphNode> finished;
 
-        public PQ(Vector3 start, Vector3 end, Tilemap tilemap)
+        public PQ(Vector3Int start, Vector3Int end)
         {
             this.start = start;
             this.end = end;
-            this.tilemap = tilemap;
             this.queue = new List<PQitem>();
             this.finished = new HashSet<GraphNode>();
         }
 
-        public void InsertToPQ(PQitem origin, GraphNode pos)
+        public void InsertToPQ(PQitem origin, GraphNode node)
         {
-            PQitem pqi = new PQitem(origin.pos,pos);
-            pqi.totalDist = 1 + Vector3.Distance(pos.pos,end) + origin.totalDist;
+            PQitem pqi = new PQitem(origin.node,node);
+            pqi.totalDist = 1 + Vector3.Distance(node.pos,end) + origin.totalDist;
             for (var i = 0; i < queue.Count; i++) {
                 if (pqi.totalDist < queue[i].totalDist) {
                     queue.Insert(i, pqi);
@@ -59,27 +60,30 @@ public static class Pathfinder
 
         public void AddConnections(PQitem origin)
         {
-            foreach (GraphNode connection in origin.pos.connections) {
+            foreach (GraphNode connection in origin.node.connections) {
                 if (!finished.Contains(connection)) InsertToPQ(origin,connection);
             }
-            finished.Add(origin.pos);
+            finished.Add(origin.node);
         }
     }
     
-    public static List<Vector3> GetPath(Vector3 start, Vector3 end, Tilemap tilemap)
+    public List<Vector3Int> GetPath(Vector3Int start, Vector3Int end)
     {
-        PQ pq = new PQ(start,end,tilemap);
+        PQ pq = new PQ(start,end);
         List<PQitem> doneCons = new List<PQitem>();
-        GraphNode gStart = graph[0];
+        MapNode startRoom = rooms.Find(r => r.InThisRoom(start));
+        MapNode endRoom = rooms.Find(r => r.InThisRoom(end));
+        GraphNode gStart = new GraphNode(start.x,start.y);
+        foreach (GraphNode node in startRoom.nodes) {
+            gStart.connections.Add(node);
+        }
         GraphNode gEnd = graph[0];
-        foreach (GraphNode node in graph) {
-            if (Vector3.Distance(start,node.pos) < Vector3.Distance(gStart.pos,start)) gStart = node;
+        foreach (GraphNode node in endRoom.nodes) {
+            // if (Vector3.Distance(start,node.pos) < Vector3.Distance(gStart.pos,start)) gStart = node;
             if (Vector3.Distance(end,node.pos) < Vector3.Distance(gEnd.pos,start)) gEnd = node;
         }
-        gStart = graph[0];
-        gEnd = graph[graph.Count-1];
         pq.AddConnections(gStart);
-        while (pq.queue.Count > 0 && !pq.queue[0].pos.Equals(gEnd)) {
+        while (pq.queue.Count > 0 && !pq.queue[0].node.Equals(gEnd)) {
             var first = pq.queue[0];
             pq.queue.RemoveAt(0);
             pq.AddConnections(first);
@@ -90,16 +94,29 @@ public static class Pathfinder
         path.Add(pq.queue[0]);
         while (!path[0].goThrough.Equals(gStart)) {
             var goThrough = path[0].goThrough;
-            var prevStep = doneCons.Find(n => n.pos.Equals(goThrough));
+            var prevStep = doneCons.Find(n => n.node.Equals(goThrough));
             path.Insert(0,prevStep);
         }
-        List<Vector3> vectPath = new List<Vector3>();
+        List<Vector3Int> vectPath = new List<Vector3Int>();
         vectPath.Add(gStart.pos);
         foreach (PQitem i in path) {
             // i.node
-            vectPath.Add(i.pos.pos+new Vector3(0.5f,0.5f,0));
+            vectPath.Add(i.node.pos);
+            if (endRoom.InThisRoom(i.node.pos)) break;
         }
         vectPath.Add(end);
         return vectPath;
+    }
+
+    public List<Vector3> GetPathWorld(Vector3 start, Vector3 end)
+    {
+        Vector3Int tileStart = tilemap.WorldToCell(start);
+        Vector3Int tileEnd = tilemap.WorldToCell(end);
+        List<Vector3Int> tilePath = GetPath(tileStart,tileEnd);
+        List<Vector3> worldPath = new List<Vector3>();
+        foreach (Vector3Int tilePart in tilePath) {
+            worldPath.Add(tilemap.CellToWorld(tilePart));
+        }
+        return worldPath;
     }
 }

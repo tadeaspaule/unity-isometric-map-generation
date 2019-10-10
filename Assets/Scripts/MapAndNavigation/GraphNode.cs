@@ -3,12 +3,12 @@ using UnityEngine;
 
 public class GraphNode
 {
-    public Vector3 pos;
+    public Vector3Int pos;
     public List<GraphNode> connections;
 
-    public GraphNode(float x, float y)
+    public GraphNode(int x, int y)
     {
-        this.pos = new Vector3(x,y,0f);
+        this.pos = new Vector3Int(x,y,0);
         connections = new List<GraphNode>();
     }
 
