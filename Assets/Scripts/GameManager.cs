@@ -40,6 +40,10 @@ public class GameManager : MonoBehaviour
         foreach (string s in symbols) {
             assignedSymbols.Add(s,-1);
         }
+
+        
+        tilemapManager.GenerateMapLayout();
+
         // Set up dummy Friendly and Enemy objects for now
         foreach (FriendlyObject fo in party) {
             Friendly f = new Friendly();
@@ -57,7 +61,6 @@ public class GameManager : MonoBehaviour
         }
         partyPanel.Setup(party);
 
-        tilemapManager.GenerateMapLayout();
     }
 
     // Update is called once per frame

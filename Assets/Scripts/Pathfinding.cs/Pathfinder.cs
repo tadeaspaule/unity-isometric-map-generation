@@ -94,10 +94,12 @@ public static class Pathfinder
             path.Insert(0,prevStep);
         }
         List<Vector3> vectPath = new List<Vector3>();
+        vectPath.Add(gStart.pos);
         foreach (PQitem i in path) {
             // i.node
-            vectPath.Add(i.pos.pos);
+            vectPath.Add(i.pos.pos+new Vector3(0.5f,0.5f,0));
         }
+        vectPath.Add(end);
         return vectPath;
     }
 }
