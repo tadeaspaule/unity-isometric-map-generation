@@ -43,15 +43,50 @@ public class TilemapManager : MonoBehaviour
     const int blockSize = 9;
     const int mapSize = 5; // how many blocks is one side
     const int blockGap = 3;
+    const int bridgeW = 3;
 
     int[,] blocks;
-    List<string> layout;    // format is ROOM-X-Y-OPTIONS
+
+    private class MapNode
+    {
+        public int startX;
+        public int endX;
+        public int startY;
+        public int endY;
+        public List<Vector2Int> blockConnections;   // for ex connected to block at 1,1
+                                                    // but you dont know yet if that block is a single or something else
+        public List<MapNode> connections;
+
+        public MapNode(int x1, int y1, int x2, int y2)
+        {
+            startX = x1;
+            startY = y1;
+            endX = x2;
+            endY = y2;
+            blockConnections = new List<Vector2Int>();
+            connections = new List<MapNode>();
+            if (x2 + 1 < mapSize) {
+                for (int y = y1; y <= y2; y++) ConnectToBlock(x2+1,y);
+            }
+            if (y2 + 1 < mapSize) {
+                for (int x = x1; x <= x2; x++) ConnectToBlock(x,y2+1);
+            }
+            Debug.Log($"Made a node from {x1} {y1} to {x2} {y2} with {blockConnections.Count} connections");
+        }
+
+        public void ConnectToBlock(int x, int y)
+        {
+            blockConnections.Add(new Vector2Int(x,y));
+        }
+    }
+
+    List<MapNode> layout;    // format is ROOM-X-Y-OPTIONS
                             // for example single-0-1, hallup-3-3-2 (2 is height)
 
     public void GenerateMapLayout()
     {
         blocks = new int[mapSize,mapSize];
-        layout = new List<string>();
+        layout = new List<MapNode>();
         int counter = 1;
         int visitIndex = 0;
         while (visitIndex < mapSize*mapSize) {
@@ -62,7 +97,7 @@ public class TilemapManager : MonoBehaviour
             if (blocks[y,x] > 0) continue;
             List<string> possibleShapes = new List<string>();
             possibleShapes.Add("single");
-            possibleShapes.Add("single");
+            // possibleShapes.Add("single");
             bool canGoDown = y+1 < mapSize && blocks[y+1,x] == 0;
             bool canGoRight = x+1 < mapSize && blocks[y,x+1] == 0;
             if (canGoDown) possibleShapes.Add("hallwaydown");
@@ -80,33 +115,33 @@ public class TilemapManager : MonoBehaviour
             switch (shape) {
                 case "single":
                     blocks[y,x] = counter;
-                    layout.Add($"single-{x}-{y}");
+                    layout.Add(new MapNode(x,y,x,y));
                     break;
                 case "hallwaydown":
                     int height = Random.Range(2, (int)(mapSize*0.8));
                     while (y+height >= mapSize) height--;
-                    for (int h = 0; y+h <= mapSize && h <= height; h++) {
+                    for (int h = 0; h <= height; h++) {
                         if (blocks[y+h,x] > 0) {
                             height = h-1;
                             break;
                         }
                         blocks[y+h,x] = counter;
                     }
-                    if (height >= 1) layout.Add($"hallup-{x}-{y}-{height+1}");
-                    else layout.Add($"single-{x}-{y}");
+                    if (height >= 1) layout.Add(new MapNode(x,y,x,y+height));
+                    else layout.Add(new MapNode(x,y,x,y));
                     break;
                 case "hallwayright":
                     int width = Random.Range(2, (int)(mapSize*0.8));
                     while (x+width >= mapSize) width--;
-                    for (int w = 0; x+w <= mapSize && w <= width; w++) {
+                    for (int w = 0; w <= width; w++) {
                         if (blocks[y,x+w] > 0) {
                             width = w-1;
                             break;
                         }
                         blocks[y,x+w] = counter;
                     }
-                    if (width >= 1) layout.Add($"hallside-{x}-{y}-{width+1}");
-                    else layout.Add($"single-{x}-{y}");
+                    if (width >= 1) layout.Add(new MapNode(x,y,x+width,y));
+                    else layout.Add(new MapNode(x,y,x,y));
                     break;
                 case "chamber":
                     int sizex = Random.Range(2, (int)(mapSize*0.8));
@@ -120,7 +155,7 @@ public class TilemapManager : MonoBehaviour
                             break;
                         }
                     }
-                    layout.Add($"chamber-{x}-{y}-{sizex}-{sizey}");
+                    layout.Add(new MapNode(x,y,x+sizex-1,y+sizey-1));
                     for (int y2 = y; y2 < y+sizey; y2++) {
                         for (int x2 = x; x2 < x+sizex; x2++) {
                             blocks[y2,x2] = counter;
@@ -137,7 +172,15 @@ public class TilemapManager : MonoBehaviour
             }
             Debug.Log(row);
         }
+
+        PruneConnections();
+
         SetupMap();
+    }
+
+    void PruneConnections()
+    {
+        
     }
 
     // Start is called before the first frame update
@@ -147,8 +190,10 @@ public class TilemapManager : MonoBehaviour
         // colliderMap.ClearAllTiles(); DONT DO THIS IT somehow turns off the collider component or smth
     }
 
-    public void SetupMap()
+    void SetupMap()
     {
+        // This clears the tiles and adds collider everywhere
+        // The collider is removed as you place tiles (with FillGroundTile), so you get edges around everything
         levels[0].ClearAll();
         for (int y = -1; y < (blockSize+blockGap)*mapSize+1; y++) {
             for (int x = -1; x < (blockSize+blockGap)*mapSize+1; x++) {
@@ -156,90 +201,69 @@ public class TilemapManager : MonoBehaviour
                 frontwallsMap.SetTile(new Vector3Int(x,y,0),null);
             }
         }
-        for (int y = 0; y < mapSize; y++) {
-            for (int x = 0; x < mapSize; x++) {
-                int startX = (blockSize+blockGap)*x;
-                int startY = (blockSize+blockGap)*y;
-                for (int cellY = startY; cellY < startY + blockSize; cellY++) {
-                    for (int cellX = startX; cellX < startX + blockSize; cellX++) {
-                        FillGroundTile(new Vector3Int(cellX,cellY,0),cellY==startY||cellX==startX);
-                    }
-                }
-                // connect block above
-                if (y+1 < mapSize) {
-                    if (blocks[y+1,x] == blocks[y,x]) {
-                        // same room -> fill gap
-                        for (int cellY = startY+blockSize; cellY < startY+blockSize+blockGap; cellY++) {
-                            for (int cellX = startX; cellX < startX + blockSize; cellX++) {
-                                FillGroundTile(new Vector3Int(cellX,cellY,0),cellY==startY||cellX==startX);
-                            }
-                        }
-                    }
-                    else {
-                        // different room -> draw bridge
-                        int bridgeX = startX + 3;
-                        for (int cellY = startY+blockSize; cellY < startY+blockSize+blockGap; cellY++) {
-                            for (int cellX = bridgeX; cellX < bridgeX + 3; cellX++) {
-                                FillGroundTile(new Vector3Int(cellX,cellY,0),cellY==startY+blockSize||cellX==bridgeX);
-                            }
-                        }
-                    }
-                }
-                // connect block to the right
-                if (x+1 < mapSize) {
-                    if (blocks[y,x+1] == blocks[y,x]) {
-                        // same room -> fill gap
-                        for (int cellY = startY; cellY < startY+blockSize; cellY++) {
-                            for (int cellX = startX+blockSize; cellX < startX + blockSize+blockGap; cellX++) {
-                                FillGroundTile(new Vector3Int(cellX,cellY,0),cellY==startY||cellX==startX);
-                            }
-                        }
-                    }
-                    else {
-                        // different room -> draw bridge
-                        int bridgeY = startY + 3;
-                        for (int cellY = bridgeY; cellY < bridgeY+3; cellY++) {
-                            for (int cellX = startX+blockSize; cellX < startX+blockSize+blockGap; cellX++) {
-                                FillGroundTile(new Vector3Int(cellX,cellY,0),cellY==bridgeY||cellX==startX+blockSize);
-                            }
-                        }
-                    }
-                }
-                // fill empty gaps in the middle of chambers
-                if (x+1 < mapSize && y+1 < mapSize) {
-                    if (blocks[y,x+1] == blocks[y+1,x] && blocks[y,x+1] == blocks[y,x]) {
-                        for (int cellY = startY+blockSize; cellY < startY+blockSize+blockGap; cellY++) {
-                            for (int cellX = startX+blockSize; cellX < startX+blockSize+blockGap; cellX++) {
-                                FillGroundTile(new Vector3Int(cellX,cellY,0),false);
-                            }
-                        }
-                    }
-                }
-            }
-        }
         SetupRooms();
     }
 
     void SetupRooms()
     {
-        foreach (string roomShape in layout) {
-            Debug.Log(roomShape);
-            string[] parts = roomShape.Split('-');
-            int x = int.Parse(parts[1]);
-            int y = int.Parse(parts[2]);
-            switch (parts[0]) {
-                case "single":
-                    PopulateSingleRoom(x,y);
-                    break;
-                case "hallup":
-                    PopulateHallwayUp(x,y,int.Parse(parts[3]));
-                    break;
-                case "hallside":
-                    PopulateHallwaySide(x,y,int.Parse(parts[3]));
-                    break;
-                case "chamber":
-                    PopulateChamber(x,y,int.Parse(parts[3]),int.Parse(parts[4]));
-                    break;
+        foreach (MapNode node in layout) {
+            // set the node's ground tiles first
+            int startX = (blockSize+blockGap)*node.startX;
+            int startY = (blockSize+blockGap)*node.startY;
+            int endX = (blockSize+blockGap)*node.endX+blockSize;
+            int endY = (blockSize+blockGap)*node.endY+blockSize;
+            Debug.Log($"Filling shape from {startX} {startY} to {endX} {endY}");
+            for (int y = startY; y < endY; y++) {
+                for (int x = startX; x < endX; x++) {
+                    FillGroundTile(new Vector3Int(x,y,0),x==startX||y==startY);
+                }
+            }
+
+            if (node.startX < node.endX && node.startY < node.endY) {
+                // chamber
+                PopulateChamber(node.startX,node.startY,node.endX-node.startX+1,node.endY-node.startY+1);
+            }
+            else if (node.startX < node.endX) {
+                // hallway side
+                PopulateHallwaySide(node.startX,node.startY,node.endX-node.startX+1);
+            }
+            else if (node.startY < node.endY) {
+                // hallway up
+                PopulateHallwayUp(node.startX,node.startY,node.endY-node.startY+1);
+            }
+            else {
+                // single
+                PopulateSingleRoom(node.startX,node.endX);
+            }
+
+            // make the appropriate connections
+            foreach (Vector2Int blockCon in node.blockConnections) {
+                int x1 = node.endX;
+                int y1 = node.endY;
+                int x2 = blockCon.x;
+                int y2 = blockCon.y;
+                if (y2 == y1 + 1) {
+                    // bridge going up
+                    int sx = (blockSize+blockGap)*x2;
+                    int sy = (blockSize+blockGap)*y1;
+                    int bridgeX = sx + (blockSize-bridgeW) / 2;
+                    for (int cellY = sy+blockSize; cellY < sy+blockSize+blockGap; cellY++) {
+                        for (int cellX = bridgeX; cellX < bridgeX + bridgeW; cellX++) {
+                            FillGroundTile(new Vector3Int(cellX,cellY,0),cellY==sy+blockSize||cellX==bridgeX);
+                        }
+                    }
+                }
+                if (x2 == x1 + 1) {
+                    // bridge going right
+                    int sx = (blockSize+blockGap)*x1;
+                    int sy = (blockSize+blockGap)*y2;
+                    int bridgeY = sy + (blockSize-bridgeW) / 2;
+                    for (int cellY = bridgeY; cellY < bridgeY+bridgeW; cellY++) {
+                        for (int cellX = sx+blockSize; cellX < sx+blockSize+blockGap; cellX++) {
+                            FillGroundTile(new Vector3Int(cellX,cellY,0),cellY==bridgeY||cellX==sx+blockSize);
+                        }
+                    }
+                }
             }
         }
     }
