@@ -7,7 +7,7 @@ public class IsometricMovementController : MonoBehaviour
 {
 
     public float movementSpeed = 1f;
-    PathManager pathManager;
+    TilemapManager tilemapManager;
     IsometricCharacterRenderer isoRenderer;
     Vector2 destination;
 
@@ -17,7 +17,7 @@ public class IsometricMovementController : MonoBehaviour
 
     void Start()
     {
-        pathManager = FindObjectOfType<PathManager>();
+        tilemapManager = FindObjectOfType<TilemapManager>();
     }
     
     private void Awake()
@@ -35,7 +35,7 @@ public class IsometricMovementController : MonoBehaviour
 
     public void SetRoomDestination(Vector3 destination)
     {
-        path = pathManager.GetPathWorld(rbody.position,destination);
+        path = tilemapManager.GetPathWorld(rbody.position,destination);
         foreach (Vector3 p in path) {
             Debug.Log($"{p.x},{p.y}");
         }

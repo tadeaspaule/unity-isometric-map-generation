@@ -7,10 +7,11 @@ public class TilemapManager : MonoBehaviour
 {
     #region Other Managers
 
-    public PathManager pathManager;
     public GameManager gameManager;
 
     #endregion
+    
+    #region Tile objects / references
     
     public Tilemap colliderMap;     // this has collider stuff and it's used everywhere tiles are inaccessible
     public Tilemap frontwallsMap;   // the front bottom edges of all rooms, to give it a quasi 3D look
@@ -21,14 +22,12 @@ public class TilemapManager : MonoBehaviour
         public Tilemap baseMap;     // holds the bottom-most tilemap of that level, so mostly floor tiles
         public Tilemap detailMap;   // holds details tiles that sit directly on top of base tiles - decoration
         public Tilemap wallsMap;    // holds the top edge walls of that level
-        public Tilemap doorsMap;    // if applicable, holds the doors to the next level. Otherwise null
 
         public void ClearAll()
         {
             baseMap.ClearAllTiles();
             if (detailMap != null) detailMap.ClearAllTiles();
             if (wallsMap != null) wallsMap.ClearAllTiles();
-            if (doorsMap != null) doorsMap.ClearAllTiles();
         }
     }
     public List<TilemapLevel> levels;
@@ -49,20 +48,109 @@ public class TilemapManager : MonoBehaviour
     public TileBase stairsTopRightCollider;
     public TileBase stairsTopLeftCollider;
 
-    const int blockSize = 9;
-    const int mapSize = 5; // how many blocks is one side
-    const int blockGap = 3;
-    const int bridgeW = 3;
+    #endregion
 
-    int[,] blocks;
+    #region Unity Methods
 
-    List<MapNode> layout;    // format is ROOM-X-Y-OPTIONS
-                            // for example single-0-1, hallup-3-3-2 (2 is height)
+    // Start is called before the first frame update
+    void Start()
+    {
+        // frontwallsMap.ClearAllTiles();
+        // colliderMap.ClearAllTiles(); DONT DO THIS IT somehow turns off the collider component or smth
+    }
+
+    void Update()
+    {
+        if (Input.GetKeyDown("m")) {
+            Vector3Int dest = new Vector3Int(Random.Range(20,30),Random.Range(20,30),0);
+            Debug.Log($"Set destination to {dest.x},{dest.y}");
+            gameManager.enemies[0].GetComponent<IsometricMovementController>().SetRoomDestination(levels[0].baseMap.CellToWorld(dest));
+            foreach (GraphNode g in graph) {
+                levels[0].wallsMap.SetTile(new Vector3Int((int)g.pos.x,(int)g.pos.y,0),highlightTile);
+            }
+            List<Vector3Int> path = GetPath(Vector3Int.zero,dest);
+            for (int i = 0; i < path.Count; i++) {
+                Debug.Log($"{i}: ({path[i].x},{path[i].y})");
+                levels[0].wallsMap.SetTile(new Vector3Int(path[i].x,path[i].y,0),highlightTile2);
+            }
+        }
+    }
+
+    #endregion
+    
+    #region Pathfinding
+
+    public List<GraphNode> graph = new List<GraphNode>();
+    List<MapNode> rooms = new List<MapNode>();
+    
+    public List<Vector3Int> GetPath(Vector3Int start, Vector3Int end)
+    {
+        PriorityQueue pq = new PriorityQueue(start,end);
+        List<PQitem> doneCons = new List<PQitem>();
+        MapNode startRoom = rooms.Find(r => r.InThisRoom(start));
+        MapNode endRoom = rooms.Find(r => r.InThisRoom(end));
+        GraphNode gStart = new GraphNode(start.x,start.y);
+        foreach (GraphNode node in startRoom.nodes) {
+            gStart.connections.Add(node);
+        }
+        GraphNode gEnd = graph[0];
+        foreach (GraphNode node in endRoom.nodes) {
+            if (Vector3.Distance(end,node.pos) < Vector3.Distance(gEnd.pos,start)) gEnd = node;
+        }
+        pq.AddConnections(gStart);
+        while (pq.Count() > 0 && !pq.First().Equals(gEnd)) {
+            var first = pq.RemoveFirst();
+            pq.AddConnections(first);
+            doneCons.Add(first);
+        }
+        if (pq.Count() == 0) return null; // no path found
+        var path = new List<PQitem>();
+        path.Add(pq.First());
+        while (!path[0].goThrough.Equals(gStart)) {
+            var goThrough = path[0].goThrough;
+            var prevStep = doneCons.Find(n => n.node.Equals(goThrough));
+            path.Insert(0,prevStep);
+        }
+        List<Vector3Int> vectPath = new List<Vector3Int>();
+        vectPath.Add(gStart.pos);
+        foreach (PQitem i in path) {
+            // i.node
+            vectPath.Add(i.node.pos);
+            if (endRoom.InThisRoom(i.node.pos)) break;
+        }
+        vectPath.Add(end);
+        return vectPath;
+    }
+
+    public List<Vector3> GetPathWorld(Vector3 start, Vector3 end)
+    {
+        Vector3Int tileStart = levels[0].baseMap.WorldToCell(start);
+        Vector3Int tileEnd = levels[0].baseMap.WorldToCell(end);
+        List<Vector3Int> tilePath = GetPath(tileStart,tileEnd);
+        List<Vector3> worldPath = new List<Vector3>();
+        foreach (Vector3Int tilePart in tilePath) {
+            worldPath.Add(levels[0].baseMap.CellToWorld(tilePart));
+        }
+        return worldPath;
+    }
+
+    #endregion
+    
+    #region Map Layout Generation
+
+    const int blockSize = 9;    // how many tiles is a block wide & high
+    const int mapSize = 5;      // how many blocks is one side
+    const int blockGap = 3;     // how many tiles gap between blocks
+    const int bridgeW = 3;      // how wide a bridge between blocks is, in tiles
+
+    int[,] blocks; // mainly just used in map generation to keep track of which rooms cover which blocks
+
+    List<MapNode> layout;
         
     public void GenerateMapLayout()
     {
-        pathManager.graph.Clear();
-        pathManager.rooms.Clear();
+        graph.Clear();
+        rooms.Clear();
         MapNode.blockSize = blockSize;
         MapNode.blockGap = blockGap;
         MapNode.mapSize = mapSize;
@@ -73,10 +161,10 @@ public class TilemapManager : MonoBehaviour
             int cx = x*(blockSize+blockGap) + half;
             int cy = y*(blockSize+blockGap) + half;
             // clockwise from top
-            pathManager.graph.Add(new GraphNode(cx,cy-half));
-            pathManager.graph.Add(new GraphNode(cx+half,cy));
-            pathManager.graph.Add(new GraphNode(cx,cy+half));
-            pathManager.graph.Add(new GraphNode(cx-half,cy));
+            graph.Add(new GraphNode(cx,cy-half));
+            graph.Add(new GraphNode(cx+half,cy));
+            graph.Add(new GraphNode(cx,cy+half));
+            graph.Add(new GraphNode(cx-half,cy));
         }
         blocks = new int[mapSize,mapSize];
         layout = new List<MapNode>();
@@ -163,15 +251,15 @@ public class TilemapManager : MonoBehaviour
             List<GraphNode> nodesInRoom = new List<GraphNode>();
             for (int y = mn.startY; y <= mn.endY; y++) {
                 // add left edge ones
-                if (mn.startX > 0) nodesInRoom.Add(pathManager.graph[(mn.startX+y*mapSize)*4+3]);
+                if (mn.startX > 0) nodesInRoom.Add(graph[(mn.startX+y*mapSize)*4+3]);
                 // add right edge ones
-                if (mn.endX+1 < mapSize) nodesInRoom.Add(pathManager.graph[(mn.endX+y*mapSize)*4+1]);
+                if (mn.endX+1 < mapSize) nodesInRoom.Add(graph[(mn.endX+y*mapSize)*4+1]);
             }
             for (int x = mn.startX; x <= mn.endX; x++) {
                 // add top edge ones
-                if (mn.startY > 0) nodesInRoom.Add(pathManager.graph[(x+mn.startY*mapSize)*4]);
+                if (mn.startY > 0) nodesInRoom.Add(graph[(x+mn.startY*mapSize)*4]);
                 // add bottom edge ones
-                if (mn.endY+1 < mapSize) nodesInRoom.Add(pathManager.graph[(x+mn.endY*mapSize)*4+2]);                
+                if (mn.endY+1 < mapSize) nodesInRoom.Add(graph[(x+mn.endY*mapSize)*4+2]);                
             }
             for (int i = 0; i < nodesInRoom.Count; i++) {
                 for (int i2 = i+1; i2 < nodesInRoom.Count; i2++) {
@@ -181,58 +269,22 @@ public class TilemapManager : MonoBehaviour
             }
             mn.nodes = nodesInRoom;
         }
-        pathManager.graph.RemoveAll(gn => gn.connections.Count == 0);
-        for (int y = 0; y < mapSize; y++) {
-            string row = "";
-            for (int x = 0; x < mapSize; x++) {
-                row += blocks[y,x] + " ";
-            }
-            Debug.Log(row);
-        }
-
-        PruneConnections();
+        graph.RemoveAll(gn => gn.connections.Count == 0);
 
         SetupMap();
-        foreach (GraphNode g in pathManager.graph) {
+        foreach (GraphNode g in graph) {
             levels[0].wallsMap.SetTile(new Vector3Int((int)g.pos.x,(int)g.pos.y,0),highlightTile);
         }
     }
 
     void AddRoom(int x1, int y1, int x2, int y2)
     {
-        MapNode mn = new MapNode(x1,y1,x2,y2,pathManager);
+        MapNode mn = new MapNode(x1,y1,x2,y2,this);
         layout.Add(mn);
-        pathManager.rooms.Add(mn);
+        rooms.Add(mn);
     }
 
-    void PruneConnections()
-    {
-    }
-
-    // Start is called before the first frame update
-    void Start()
-    {
-        // frontwallsMap.ClearAllTiles();
-        // colliderMap.ClearAllTiles(); DONT DO THIS IT somehow turns off the collider component or smth
-    }
-
-    void Update()
-    {
-        if (Input.GetKeyDown("m")) {
-            Vector3Int dest = new Vector3Int(Random.Range(20,30),Random.Range(20,30),0);
-            Debug.Log($"Set destination to {dest.x},{dest.y}");
-            gameManager.enemies[0].GetComponent<IsometricMovementController>().SetRoomDestination(levels[0].baseMap.CellToWorld(dest));
-            foreach (GraphNode g in pathManager.graph) {
-                levels[0].wallsMap.SetTile(new Vector3Int((int)g.pos.x,(int)g.pos.y,0),highlightTile);
-            }
-            List<Vector3Int> path = pathManager.GetPath(Vector3Int.zero,dest);
-            for (int i = 0; i < path.Count; i++) {
-                Debug.Log($"{i}: ({path[i].x},{path[i].y})");
-                levels[0].wallsMap.SetTile(new Vector3Int(path[i].x,path[i].y,0),highlightTile2);
-            }
-        }
-    }
-
+    
     void SetupMap()
     {
         // This clears the tiles and adds collider everywhere
@@ -310,22 +362,71 @@ public class TilemapManager : MonoBehaviour
         }
     }
 
+    void FillGroundTile(Vector3Int pos, bool onEdge)
+    {
+        levels[0].baseMap.SetTile(pos,groundTile);
+        colliderMap.SetTile(pos,null);
+        if (onEdge) frontwallsMap.SetTile(new Vector3Int(pos.x-1,pos.y-1,0),frontwallsTile);
+    }
+
+    #endregion
+
+    #region Room Content Generation
+
     void PopulateSingleRoom(int x, int y)
     {
-
+        // TODO here you can fill a single block room with stuff
     }
 
     void PopulateChamber(int x, int y, int xSide, int ySide)
     {
-        return;
-        int startX = (blockSize+blockGap)*x+3;
-        int startY = (blockSize+blockGap)*y+3;
-        MakeElevatedGround(startX,startY,startX+3,startY+7);
-        MakeLeftUpStairs(startX,startY-1,4);
+        // TODO here you can fill a chamber room with stuff
+    }
+
+    void PopulateHallwayUp(int x, int y, int length)
+    {
+        // populates a hallway going "up" (north west)
+        // the code below will put pillars lining the sides into the room
+        int startX = (blockSize+blockGap)*x;
+        int startY = (blockSize+blockGap)*y;
+
+        for (int y2 = startY; y2 < startY+blockSize*length+blockGap*(length-1); y2+=3) {
+            // bottom left edge
+            Vector3Int pos = new Vector3Int(startX+1,y2+1,0);
+            levels[0].wallsMap.SetTile(pos,pillarTile);
+            colliderMap.SetTile(pos,groundTile);
+            // top right edge
+            pos = new Vector3Int(startX+blockSize-2,y2+1,0);
+            levels[0].wallsMap.SetTile(pos,pillarTile);
+            colliderMap.SetTile(pos,groundTile);
+        }
+    }
+
+    void PopulateHallwaySide(int x, int y, int length)
+    {
+        // populates a hallway going "right" (north east)
+        // the code below will put pillars lining the sides into the room
+        int startX = (blockSize+blockGap)*x;
+        int startY = (blockSize+blockGap)*y;
+
+        for (int x2 = startX; x2 < startX+blockSize*length+blockGap*(length-1); x2+=3) {
+            // bottom right edge
+            Vector3Int pos = new Vector3Int(x2+1,startY+1,0);
+            levels[0].wallsMap.SetTile(pos,pillarTile);
+            colliderMap.SetTile(pos,groundTile);
+            // top left edge
+            pos = new Vector3Int(x2+1,startY+blockSize-2,0);
+            levels[0].wallsMap.SetTile(pos,pillarTile);
+            colliderMap.SetTile(pos,groundTile);
+        }
     }
 
     void MakeRightUpStairs(int x, int y, int length)
     {
+        // Makes a staircase from (x,y) to (x,y+length) (exclusive)
+        // The stairs are facing "right and up"
+        // Also sets up all the colliders
+
         for (int i = 0; i < length; i++) {
             levels[0].baseMap.SetTile(new Vector3Int(x,y+i,0),stairsUpRightTile); // stair sprite
         }
@@ -340,6 +441,10 @@ public class TilemapManager : MonoBehaviour
 
     void MakeLeftUpStairs(int x, int y, int length)
     {
+        // Makes a staircase from (x,y) to (x+length,y) (exclusive)
+        // The stairs are facing "left and up"
+        // Also sets up all the colliders
+
         for (int i = 0; i < length; i++) {
             levels[0].baseMap.SetTile(new Vector3Int(x+i,y,0),stairsUpLeftTile); // stair sprite
         }
@@ -354,6 +459,11 @@ public class TilemapManager : MonoBehaviour
 
     void MakeElevatedGround(int x1, int y1, int x2, int y2)
     {
+        // Makes a rectangle of elevated ground from (x1,y1) to (x2,y2) (inclusive)
+        // Also sets up all the colliders
+
+        // At the moment this uses the level 0 baseMap, so if you want better separation of levels
+        // then you should change this
         for (int x = x1; x <= x2; x++) {
             // bottom right collider
             colliderMap.SetTile(new Vector3Int(x-1,y1-2,0),topLeftCollider);
@@ -379,48 +489,5 @@ public class TilemapManager : MonoBehaviour
         colliderMap.SetTile(new Vector3Int(x2,y2,0),topHalfCollider);
     }
 
-    void PopulateHallwayUp(int x, int y, int length)
-    {
-        return;
-        // populates a hallway going "up" (north west)
-        int startX = (blockSize+blockGap)*x;
-        int startY = (blockSize+blockGap)*y;
-
-        for (int y2 = startY; y2 < startY+blockSize*length+blockGap*(length-1); y2+=3) {
-            // bottom left edge
-            Vector3Int pos = new Vector3Int(startX+1,y2+1,0);
-            levels[0].wallsMap.SetTile(pos,pillarTile);
-            colliderMap.SetTile(pos,groundTile);
-            // top right edge
-            pos = new Vector3Int(startX+blockSize-2,y2+1,0);
-            levels[0].wallsMap.SetTile(pos,pillarTile);
-            colliderMap.SetTile(pos,groundTile);
-        }
-    }
-
-    void PopulateHallwaySide(int x, int y, int length)
-    {
-        return;
-        // populates a hallway going "right" (north east)
-        int startX = (blockSize+blockGap)*x;
-        int startY = (blockSize+blockGap)*y;
-
-        for (int x2 = startX; x2 < startX+blockSize*length+blockGap*(length-1); x2+=3) {
-            // bottom right edge
-            Vector3Int pos = new Vector3Int(x2+1,startY+1,0);
-            levels[0].wallsMap.SetTile(pos,pillarTile);
-            colliderMap.SetTile(pos,groundTile);
-            // top left edge
-            pos = new Vector3Int(x2+1,startY+blockSize-2,0);
-            levels[0].wallsMap.SetTile(pos,pillarTile);
-            colliderMap.SetTile(pos,groundTile);
-        }
-    }
-
-    void FillGroundTile(Vector3Int pos, bool onEdge)
-    {
-        levels[0].baseMap.SetTile(pos,groundTile);
-        colliderMap.SetTile(pos,null);
-        if (onEdge) frontwallsMap.SetTile(new Vector3Int(pos.x-1,pos.y-1,0),frontwallsTile);
-    }
+    #endregion
 }
