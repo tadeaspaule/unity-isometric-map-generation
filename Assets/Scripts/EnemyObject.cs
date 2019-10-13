@@ -20,6 +20,7 @@ public class EnemyObject : CharacterObject
 
     protected override void UpdateHealth()
     {
-        healthbar.fillAmount = ((float)enemy.health) / enemy.maxHealth;
+        // Uncomment this when you assign an Enemy object to this GameObject
+        // healthbar.fillAmount = ((float)enemy.health) / enemy.maxHealth;
     }
 }

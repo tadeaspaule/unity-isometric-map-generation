@@ -28,12 +28,6 @@ public class GameManager : MonoBehaviour
 
     #region Click events
 
-    public void PartyPanelClicked(int index)
-    {
-        Debug.Log($"Party panel clicked {index}");
-        party[index].friendly.health -= 5;
-    }
-
     public void PartyCharacterClicked(GameObject partyCharacter)
     {
         Debug.Log($"Clicking on party character with name {partyCharacter.name}");
