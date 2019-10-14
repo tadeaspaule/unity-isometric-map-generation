@@ -1,13 +1,16 @@
 # unity-isometric-map-generation
 
-## What's included:
+## What's included
 - Generates a random square map of variously shaped rectangular rooms (hallways, single block rooms, big chambers) connected by bridges
 - Sets up colliders so you can't walk out of the map
 - Pathfinding methods to get AI characters around the map
 - Some basic content for rooms (like pillars in hallways, shown below)
 - Methods for creating elevated platforms and stairs, complete with colliders
 
+## Screenshots
 ![Generated map example](Screenshots/mapgenscr.png?raw=true "Generated map example")
+
+![Generated map example 2](Screenshots/mapgenscr2.png?raw=true "Generated map example 2")
 
 
 ## Known bugs
