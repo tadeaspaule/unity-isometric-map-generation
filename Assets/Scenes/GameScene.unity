@@ -451,7 +451,7 @@ PrefabInstance:
         type: 3}
       propertyPath: followTarget
       value: 
-      objectReference: {fileID: 1878364097}
+      objectReference: {fileID: 1434058479}
     - target: {fileID: 8422213676754690966, guid: a715e6498a8f8444e8af75aa518ea006,
         type: 3}
       propertyPath: m_UpscaleRT
@@ -2745,8 +2745,6 @@ MonoBehaviour:
   - {fileID: 6554948683915553257}
   enemies:
   - {fileID: 3348739610769196966}
-  - {fileID: 0}
-  - {fileID: 0}
   tilemapManager: {fileID: 1364056229}
 --- !u!4 &1298037034
 Transform:
@@ -2801,8 +2799,6 @@ MonoBehaviour:
   groundTile: {fileID: 11400000, guid: 2a43b57231f3ccd49a2fe3789d2d6fa6, type: 2}
   frontwallsTile: {fileID: 11400000, guid: a330cb22fa26e804bbb98218c18f179f, type: 2}
   pillarTile: {fileID: 11400000, guid: 29089ebd427dd754db877818f3e157b6, type: 2}
-  highlightTile: {fileID: 0}
-  highlightTile2: {fileID: 0}
   stairsUpLeftTile: {fileID: 11400000, guid: 0ab32fafc1969664eb401ffb8f026a38, type: 2}
   topRightCollider: {fileID: 11400000, guid: 2655b78189c934c049014795a63848c2, type: 2}
   stairsUpRightTile: {fileID: 11400000, guid: f1b498d98c3790942bd7fcbfd264df3f, type: 2}
@@ -2881,6 +2877,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   movementSpeed: 4
+--- !u!4 &1434058479 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8408189468405944297, guid: 65e19291fb246854f96cd627fe1358f6,
+    type: 3}
+  m_PrefabInstance: {fileID: 6554948683915553256}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1651778478
 GameObject:
   m_ObjectHideFlags: 0
@@ -4860,12 +4862,6 @@ Transform:
   m_Father: {fileID: 968377523}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!4 &1878364097 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 9328478333500954, guid: 1fc703c69dbc5f64c86cc29dbeef60b1,
-    type: 3}
-  m_PrefabInstance: {fileID: 3348739610769196964}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1974214366
 GameObject:
   m_ObjectHideFlags: 0

@@ -35,8 +35,6 @@ public class TilemapManager : MonoBehaviour
     public TileBase groundTile;
     public TileBase frontwallsTile;
     public TileBase pillarTile;
-    public TileBase highlightTile;
-    public TileBase highlightTile2;
 
     public TileBase stairsUpLeftTile;
     public TileBase topRightCollider;
@@ -47,34 +45,6 @@ public class TilemapManager : MonoBehaviour
     public TileBase topHalfCollider;
     public TileBase stairsTopRightCollider;
     public TileBase stairsTopLeftCollider;
-
-    #endregion
-
-    #region Unity Methods
-
-    // Start is called before the first frame update
-    void Start()
-    {
-        // frontwallsMap.ClearAllTiles();
-        // colliderMap.ClearAllTiles(); DONT DO THIS IT somehow turns off the collider component or smth
-    }
-
-    void Update()
-    {
-        if (Input.GetKeyDown("m")) {
-            Vector3Int dest = new Vector3Int(Random.Range(20,30),Random.Range(20,30),0);
-            Debug.Log($"Set destination to {dest.x},{dest.y}");
-            gameManager.enemies[0].GetComponent<IsometricMovementController>().SetRoomDestination(levels[0].baseMap.CellToWorld(dest));
-            foreach (GraphNode g in graph) {
-                levels[0].wallsMap.SetTile(new Vector3Int((int)g.pos.x,(int)g.pos.y,0),highlightTile);
-            }
-            List<Vector3Int> path = GetPath(Vector3Int.zero,dest);
-            for (int i = 0; i < path.Count; i++) {
-                Debug.Log($"{i}: ({path[i].x},{path[i].y})");
-                levels[0].wallsMap.SetTile(new Vector3Int(path[i].x,path[i].y,0),highlightTile2);
-            }
-        }
-    }
 
     #endregion
     
@@ -272,9 +242,6 @@ public class TilemapManager : MonoBehaviour
         graph.RemoveAll(gn => gn.connections.Count == 0);
 
         SetupMap();
-        foreach (GraphNode g in graph) {
-            levels[0].wallsMap.SetTile(new Vector3Int((int)g.pos.x,(int)g.pos.y,0),highlightTile);
-        }
     }
 
     void AddRoom(int x1, int y1, int x2, int y2)
